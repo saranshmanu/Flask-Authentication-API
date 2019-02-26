@@ -22,7 +22,7 @@ md2 = MD2.new(STRING_TO_HASH).hexdigest()
 md4 = MD4.new(STRING_TO_HASH).hexdigest()
 md5 = MD5.new(STRING_TO_HASH).hexdigest()
 
-print(md2)
+print(sha256)
 print(md4)
 print(md5)
 
