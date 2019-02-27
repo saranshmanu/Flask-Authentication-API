@@ -38,7 +38,7 @@ ENCRYPTION_STANDARD = ARC4
 
 object1 = ENCRYPTION_STANDARD.new(ENCRYPTION_DECRYPTION_KEY)
 object2 = ENCRYPTION_STANDARD.new(ENCRYPTION_DECRYPTION_KEY)
-text = '9d5887d330674e1f960835aaaa146b00'
+text = 'abcdefghijklmnop'
 
 encrypted_text = object1.encrypt(text)
 decrypted_text = object2.decrypt(encrypted_text)

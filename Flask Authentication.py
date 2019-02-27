@@ -13,7 +13,7 @@ port = "9000"
 # --------------------------------------ENVIRONMENT VARIABLES---------------------------------------------
 
 EMAIL_ID = 'saranshmanu@yahoo.co.in'
-EMAIL_PASSWORD = 'password'
+EMAIL_PASSWORD = 'Password'
 JWT_SECRET = "THIS_IS_THE_JWT_SECRET"
 JWT_ALGORITHM = ['HS256']
 JWT_EXPIRATION_DURATION = 1000
