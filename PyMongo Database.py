@@ -1,11 +1,11 @@
 from pymongo import MongoClient
 import datetime
 
-databaseLink = "mongodb://saransh.xyz"
+database_link = "mongodb://saransh.xyz"
 name_of_the_database = "new_database"
 
 # connect to the database
-client = MongoClient(databaseLink)
+client = MongoClient(database_link)
 # select the database to post the object
 db = client[name_of_the_database]
 posts = db.posts
