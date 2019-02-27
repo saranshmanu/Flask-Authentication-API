@@ -1,6 +1,5 @@
 from flask import Flask, redirect, url_for, request, render_template, jsonify
 from Crypto.Hash import SHA512
-from Crypto.Cipher import ARC4
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from bson import ObjectId
@@ -13,8 +12,6 @@ port = "9000"
 
 # --------------------------------------ENVIRONMENT VARIABLES---------------------------------------------
 
-ENCRYPTION_DECRYPTION_KEY = "THIS_IS_THE_KEY_TO_THE_ENCRYPTION"
-ENCRYPTION_STANDARD = ARC4
 EMAIL_ID = 'saranshmanu@yahoo.co.in'
 EMAIL_PASSWORD = 'password'
 JWT_SECRET = "THIS_IS_THE_JWT_SECRET"
@@ -41,7 +38,6 @@ db = client[NAME_OF_THE_DATABASE]
 def test():
     try:
         decoded_data = jwt.decode(request.form['token'], JWT_SECRET, algorithms= JWT_ALGORITHM)
-        object = ENCRYPTION_STANDARD.new(ENCRYPTION_DECRYPTION_KEY)
         decrypted_uuid = decoded_data['uuid']
         return jsonify({
             "success":  True,
@@ -90,7 +86,6 @@ def login():
         returned_hash = result['password']
         if hash == returned_hash: 
             # Password matched successfully
-            object = ENCRYPTION_STANDARD.new(ENCRYPTION_DECRYPTION_KEY)
             encrypted_uuid = result['uuid']
             expiration_time = datetime.datetime.utcnow() + datetime.timedelta(seconds=JWT_EXPIRATION_DURATION)
             jwt_payload = jwt.encode({
@@ -216,7 +211,26 @@ def logout():
 
 @app.route('/auth/delete_account', methods = ['POST'])
 def delete_account():
-    return redirect(url_for('hello_world'))
+    user_password = request.form['password']
+    user_username = request.form['username']
+    hash = SHA512.new(user_password.encode('utf-8')).hexdigest()
+    result = db.users.find_one({"username": user_username})
+    if result == None:
+        return jsonify({
+            "success"   : False,
+            "message"   : "User doesn't exist"
+        })
+    if hash == result['password']:
+        db.users.delete_one({"_id": result["_id"]})
+        return jsonify({
+            "success"   : True,
+            "message"   : "User account deleted"
+        })
+    else:
+        return jsonify({
+            "success"   : False,
+            "message"   : "Password doesn't match"
+        })
 
 @app.route('/auth/reset_password', methods = ['POST'])
 def reset_password():
