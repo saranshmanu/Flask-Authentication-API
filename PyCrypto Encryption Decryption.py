@@ -1,3 +1,5 @@
+# ---------------------------------------- DES and DES3 ----------------------------------------
+
 from Crypto.Cipher import DES, DES3
 from Crypto import Random
 
@@ -25,3 +27,18 @@ TEXT_TO_ENCRYPT = 'abcdefghijklmnop'
 encrypted_text = encrypt_data(TOTAL_ROUNDS_OF_ENCRYPTION, TEXT_TO_ENCRYPT, ENCRYPTION_STANDARD)
 decrypted_text = decrypt_data(TOTAL_ROUNDS_OF_ENCRYPTION, encrypted_text, ENCRYPTION_STANDARD)
 print(encrypted_text, decrypted_text)
+
+# ---------------------------------------- ARC4 and ARC2 ----------------------------------------
+
+from Crypto.Cipher import ARC4, ARC2
+
+ENCRYPTION_DECRYPTION_KEY = "THIS_IS_THE_KEY_TO_THE_ENCRYPTION"
+ENCRYPTION_STANDARD = ARC2
+
+object1 = ENCRYPTION_STANDARD.new(ENCRYPTION_DECRYPTION_KEY)
+object2 = ENCRYPTION_STANDARD.new(ENCRYPTION_DECRYPTION_KEY)
+text = 'abcdefghijklmnop'
+
+encrypted_text = object1.encrypt(text)
+decrypted_text = object2.decrypt(encrypted_text)
+print(decrypted_text)
