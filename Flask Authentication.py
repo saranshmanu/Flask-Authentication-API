@@ -5,6 +5,8 @@ from flask import Flask
 from flask_mail import Mail, Message
 from bson import ObjectId
 import uuid
+import jwt
+import datetime
 
 
 host = "localhost"
@@ -20,6 +22,7 @@ app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 mail = Mail(app)
 
+jwt_secret = "this is the jwt secret"
 
 databaseLink = "mongodb://saransh.xyz"
 name_of_the_database = "new_database"
@@ -27,23 +30,42 @@ client = MongoClient(databaseLink)
 db = client[name_of_the_database]
 posts = db.posts
 
+@app.route('/test', methods = ['POST'])
+def test():
+    try:
+        decoded_data = jwt.decode(request.form['token'], jwt_secret, algorithms=['HS256'])
+        return jsonify({
+            "success":  True,
+            "uuid"   :  decoded_data['uuid']
+        })
+    except jwt.ExpiredSignatureError:
+        return jsonify({
+            "success":  False,
+            "message":  "Token Expired"
+        })
+    except jwt.DecodeError:
+        return jsonify({
+            "success":  False,
+            "message":  "Invalid Token"
+        })
+
 @app.route('/auth/login', methods = ['POST'])
 def login():
     username = request.form['username']
     password = request.form['password']
-
+    success = True
     # Checking if the length of the fields are exceeding the limit or not 
     if len(password) > 30 :
-        response = {
-            "success"   : False,
-            "message"   : "Length of password exceeded the limit"
-        }
-        return jsonify(response)
+        message = "Length of password exceeded the limit"
+        success = False
+    elif len(username) > 30 :
+        message = "Length of username exceeded the limit"
+        success = False
 
-    if len(username) > 30 :
+    if success == False:
         response = {
             "success"   : False,
-            "message"   : "Length of username exceeded the limit"
+            "message"   : message
         }
         return jsonify(response)
 
@@ -72,9 +94,15 @@ def login():
         success = False
         message = "User doesn't found."
 
+    jwt_payload = jwt.encode({
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=10),
+        "uuid": result['uuid']
+    }, jwt_secret)
+
     response = {
         "success"   : success,
-        "message"   : message
+        "message"   : message,
+        "token"     : jwt_payload
     }
     return jsonify(response)
 
@@ -83,26 +111,23 @@ def register():
     username = request.form['username']
     password = request.form['password']
     email = request.form['email']
+    success = True
 
     # Checking if the length of the fields are exceeding the limit or not
     if len(password) > 30 :
-        response = {
-            "success"   : False,
-            "message"   : "Length of password exceeded the limit"
-        }
-        return jsonify(response)
+        message = "Length of password exceeded the limit"
+        success = False
+    elif len(username) > 30 :
+        message = "Length of username exceeded the limit"
+        success = False
+    elif len(email) > 30 :
+        message = "Length of email exceeded the limit"
+        success = False
 
-    if len(username) > 30 :
+    if success == False:
         response = {
             "success"   : False,
-            "message"   : "Length of username exceeded the limit"
-        }
-        return jsonify(response)
-
-    if len(email) > 30 :
-        response = {
-            "success"   : False,
-            "message"   : "Length of email exceeded the limit"
+            "message"   : message
         }
         return jsonify(response)
 
@@ -124,14 +149,14 @@ def register():
             msg.html = '<HTML><a href = "' + str(confirmation_url) + '">Press to verify the mail</a></HTML>'
             mail.send(msg)
             password_hash = SHA512.new(password.encode('utf-8')).hexdigest()
-            dictionary = {
+            user = {
                 "email"     : email,
                 "username"  : username,
                 "password"  : password_hash,
                 "email_confirmation": False,
                 "uuid": unique_id
             }
-            result = posts.insert_one(dictionary)
+            result = posts.insert_one(user)
             response = {
                 "success": True,
                 "message": "User registered successfully. Confirm the mail to continue"
@@ -187,16 +212,16 @@ def email_confirmation(token):
 def logout():
     return redirect(url_for('hello_world'))
 
+@app.route('/auth/delete_account', methods = ['POST'])
+def delete_account():
+    return redirect(url_for('hello_world'))
+
 @app.route('/auth/reset_password', methods = ['POST'])
 def reset_password():
     return redirect(url_for('hello_world'))
 
 @app.route('/auth/resend_email_confirmation', methods = ['POST'])
 def resend_email_confirmation():
-    return redirect(url_for('hello_world'))
-
-@app.route('/auth/delete_account', methods = ['POST'])
-def delete_account():
     return redirect(url_for('hello_world'))
 
 if __name__ == '__main__':
