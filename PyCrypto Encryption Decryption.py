@@ -34,11 +34,11 @@ print(encrypted_text, decrypted_text)
 from Crypto.Cipher import ARC4, ARC2
 
 ENCRYPTION_DECRYPTION_KEY = "THIS_IS_THE_KEY_TO_THE_ENCRYPTION"
-ENCRYPTION_STANDARD = ARC2
+ENCRYPTION_STANDARD = ARC4
 
 object1 = ENCRYPTION_STANDARD.new(ENCRYPTION_DECRYPTION_KEY)
 object2 = ENCRYPTION_STANDARD.new(ENCRYPTION_DECRYPTION_KEY)
-text = 'abcdefghijklmnop'
+text = '9d5887d330674e1f960835aaaa146b00'
 
 encrypted_text = object1.encrypt(text)
 decrypted_text = object2.decrypt(encrypted_text)
