@@ -205,10 +205,6 @@ def email_confirmation(token):
             "message"   : "Mail server not responding. Try again after some time"
         })
 
-@app.route('/auth/logout', methods = ['POST'])
-def logout():
-    return redirect(url_for('hello_world'))
-
 @app.route('/auth/delete_account', methods = ['POST'])
 def delete_account():
     user_password = request.form['password']
@@ -221,7 +217,7 @@ def delete_account():
             "message"   : "User doesn't exist"
         })
     if hash == result['password']:
-        db.users.delete_one({"_id": result["_id"]})
+        db.users.delete_one({"uuid": result["uuid"]})
         return jsonify({
             "success"   : True,
             "message"   : "User account deleted"
@@ -234,10 +230,61 @@ def delete_account():
 
 @app.route('/auth/reset_password', methods = ['POST'])
 def reset_password():
-    return redirect(url_for('hello_world'))
+    user_password = request.form['password']
+    user_new_password = request.form['new_password']
+    user_username = request.form['username']
+    hash = SHA512.new(user_password.encode('utf-8')).hexdigest()
+    new_hash = SHA512.new(user_password.encode('utf-8')).hexdigest()
+    result = db.users.find_one({"username": user_username})
+    if result == None:
+        return jsonify({
+            "success"   : False,
+            "message"   : "User doesn't exist"
+        })
+    if hash == result['password']:
+        db.users.update_one(
+            {"uuid": result['uuid']},
+            {"$set": {"password":new_hash}}
+        )
+        return jsonify({
+            "success"   : True,
+            "message"   : "User password changed successfully"
+        })
+    else:
+        return jsonify({
+            "success"   : False,
+            "message"   : "Password doesn't match"
+        })
 
 @app.route('/auth/resend_email_confirmation', methods = ['POST'])
 def resend_email_confirmation():
+    user_password = request.form['password']
+    user_username = request.form['username']
+    hash = SHA512.new(user_password.encode('utf-8')).hexdigest()
+    result = db.users.find_one({"username": user_username})
+    if result == None:
+        return jsonify({
+            "success"   : False,
+            "message"   : "User doesn't exist"
+        })
+    if hash == result['password']:
+        # Sending the verification email to the user
+        email = Message('Confirm the email to continue', sender = EMAIL_ID, recipients = [result['email']])
+        confirmation_url = 'http://' + host + ":" + port + "/auth/email_confirmation/" + result['uuid']
+        email.html = '<HTML><a href = "' + str(confirmation_url) + '">Press to verify the mail</a></HTML>'
+        mail.send(email)
+        return jsonify({
+            "success"   : True,
+            "message"   : "Verification email sent to the user"
+        })
+    else:
+        return jsonify({
+            "success"   : False,
+            "message"   : "Password doesn't match"
+        })
+
+@app.route('/auth/logout', methods = ['POST'])
+def logout():
     return redirect(url_for('hello_world'))
 
 if __name__ == '__main__':
