@@ -1,8 +1,7 @@
-from flask import Flask, redirect, url_for, request, render_template, jsonify
+from flask import Flask, redirect, url_for, request, jsonify
 from Crypto.Hash import SHA512
 from pymongo import MongoClient
 from flask_mail import Mail, Message
-from bson import ObjectId
 import uuid
 import jwt
 import datetime
@@ -10,17 +9,7 @@ import datetime
 host = "localhost"
 port = "9000"
 
-# --------------------------------------ENVIRONMENT VARIABLES---------------------------------------------
-
-EMAIL_ID = 'saranshmanu@yahoo.co.in'
-EMAIL_PASSWORD = 'Password'
-JWT_SECRET = "THIS_IS_THE_JWT_SECRET"
-JWT_ALGORITHM = ['HS256']
-JWT_EXPIRATION_DURATION = 1000
-DATABASE_LINK = "mongodb://saransh.xyz"
-NAME_OF_THE_DATABASE = "USER_DATABASE"
-
-# --------------------------------------MAIL VARIABLE CONFIGURATION----------------------------------------
+from authentication.constants.environment_variables import *
 
 app = Flask(__name__)
 app.config['MAIL_SERVER']='smtp.mail.yahoo.com'
@@ -74,39 +63,39 @@ def login():
         })
 
     result = db.users.find_one({"username": user_username})
-    if result != None:
-        # The user is successfully found
-        if result['email_confirmation'] == False:
-            return jsonify({
-                "success": False,
-                "message": "Email hasn't been confirmed"
-            })
-        # User has confirmed the email id and now continuing
-        hash = SHA512.new(user_password.encode('utf-8')).hexdigest()
-        returned_hash = result['password']
-        if hash == returned_hash: 
-            # Password matched successfully
-            encrypted_uuid = result['uuid']
-            expiration_time = datetime.datetime.utcnow() + datetime.timedelta(seconds=JWT_EXPIRATION_DURATION)
-            jwt_payload = jwt.encode({
-                "exp" : expiration_time,
-                "uuid": encrypted_uuid
-            }, JWT_SECRET)
-            return jsonify({
-                "success"   : success,
-                "message"   : "User signed in successfully",
-                "token"     : jwt_payload
-            })
-        else:
-            # Password doesn't match
-            success = False
-            message = "User found. Password does not match"
-    else:
+    if result == None:
         # The user doen't exist
         return jsonify({
             "success": False,
             "message": "User doesn't found."
         })
+    # The user is successfully found
+    if result['email_confirmation'] == False:
+        return jsonify({
+            "success": False,
+            "message": "Email hasn't been confirmed"
+        })
+    # User has confirmed the email id and now continuing
+    hash = SHA512.new(user_password.encode('utf-8')).hexdigest()
+    returned_hash = result['password']
+    if hash == returned_hash: 
+        # Password matched successfully
+        encrypted_uuid = result['uuid']
+        expiration_time = datetime.datetime.utcnow() + datetime.timedelta(seconds=JWT_EXPIRATION_DURATION)
+        jwt_payload = jwt.encode({
+            "exp" : expiration_time,
+            "uuid": encrypted_uuid
+        }, JWT_SECRET)
+        return jsonify({
+            "success"   : success,
+            "message"   : "User signed in successfully",
+            "token"     : jwt_payload
+        })
+    else:
+        return jsonify({
+            "success"   : False,
+            "message"   : "User found. Password does not match",
+        })     
 
 @app.route('/auth/register', methods = ['POST'])
 def register():
@@ -139,34 +128,33 @@ def register():
             "success": False,
             "message": "User already registered"
         })
-    else:
-        try:
-            # Registering the user
-            unique_id = uuid.uuid4().hex
-            # Sending the verification email to the user
-            email = Message('Confirm the email to continue', sender = EMAIL_ID, recipients = [user_email])
-            confirmation_url = 'http://' + host + ":" + port + "/auth/email_confirmation/" + unique_id
-            email.html = '<HTML><a href = "' + str(confirmation_url) + '">Press to verify the mail</a></HTML>'
-            mail.send(email)
-            # Creating the password hash for the user ad storing in the database
-            password_hash = SHA512.new(user_password.encode('utf-8')).hexdigest()
-            user = {
-                "email"     : user_email,
-                "username"  : user_username,
-                "password"  : password_hash,
-                "email_confirmation": False,
-                "uuid": unique_id
-            }
-            db.users.insert_one(user)
-            return jsonify({
-                "success": True,
-                "message": "User registered successfully. Confirm the mail to continue"
-            })
-        except:
-            return jsonify({
-                "success": False,
-                "message": "Mail server not responding. Try again after some time"
-            })
+    try:
+        # Registering the user
+        unique_id = uuid.uuid4().hex
+        # Sending the verification email to the user
+        email = Message('Confirm the email to continue', sender = EMAIL_ID, recipients = [user_email])
+        confirmation_url = 'http://' + host + ":" + port + "/auth/email_confirmation/" + unique_id
+        email.html = '<HTML><a href = "' + str(confirmation_url) + '">Press to verify the mail</a></HTML>'
+        mail.send(email)
+        # Creating the password hash for the user ad storing in the database
+        password_hash = SHA512.new(user_password.encode('utf-8')).hexdigest()
+        user = {
+            "email"     : user_email,
+            "username"  : user_username,
+            "password"  : password_hash,
+            "email_confirmation": False,
+            "uuid": unique_id
+        }
+        db.users.insert_one(user)
+        return jsonify({
+            "success": True,
+            "message": "User registered successfully. Confirm the mail to continue"
+        })
+    except:
+        return jsonify({
+            "success": False,
+            "message": "Mail server not responding. Try again after some time"
+        })
         
 
 @app.route('/auth/email_confirmation/<token>', methods = ['GET'])
